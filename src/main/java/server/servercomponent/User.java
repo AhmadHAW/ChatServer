@@ -11,6 +11,9 @@ public class User {
 	private int port;
 	private InetAddress ipAdress;
 
+	@JsonIgnore
+	private int tcpPort;
+
 	public User(String userName, int port, String ipAdress) throws UnknownHostException, NameNotValidException, GivenObjectNotValidException {
 		if(!GlobalConstantsAndValidation.isValidName(userName)){
 			throw new NameNotValidException("Der Username "+userName+" ist nicht gültig");
@@ -41,6 +44,16 @@ public class User {
 		return port;
 	}
 
+	public int getTcpPort() {
+		return tcpPort;
+	}
+
+	public void setTcpPort(int tcpPort) throws GivenObjectNotValidException {
+		if(!GlobalConstantsAndValidation.isValidPort(tcpPort)){
+			throw new GivenObjectNotValidException("Der Port "+tcpPort+" muss zwichen "+GlobalConstantsAndValidation.PORT_MIN+" und "+GlobalConstantsAndValidation.PORT_MAX+" liegen.");
+		}this.tcpPort = tcpPort;
+	}
+
 	public void setPort(int port) throws GivenObjectNotValidException {
 		if(!GlobalConstantsAndValidation.isValidPort(port)){
 			throw new GivenObjectNotValidException("Der Port "+port+" muss zwichen "+GlobalConstantsAndValidation.PORT_MIN+" und "+GlobalConstantsAndValidation.PORT_MAX+" liegen.");
@@ -68,7 +81,7 @@ public class User {
 
 	@JsonIgnore
 	public boolean isCorrect() {
-		return GlobalConstantsAndValidation.isValidName(userName)&&GlobalConstantsAndValidation.isValidPort(port);
+		return GlobalConstantsAndValidation.isValidName(userName)&&GlobalConstantsAndValidation.isValidPort(port)&&GlobalConstantsAndValidation.isValidPort(tcpPort);
 	}
 
 	@Override

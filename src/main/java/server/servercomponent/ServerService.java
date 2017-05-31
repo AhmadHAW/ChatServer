@@ -67,7 +67,10 @@ public class ServerService {
 		}
 	}
 
-	public User getUser(String userName) throws UserNotExistException {
+	public User getUser(String userName) throws UserNotExistException, NameNotValidException {
+		if(!GlobalConstantsAndValidation.isValidName(userName)){
+			throw new NameNotValidException("Der Username "+userName+" ist nicht erlaubt.");
+		}
 		Optional<User> opt = users.stream().filter(t -> t.getUserName().equals(userName)).findFirst();
 		if(!opt.isPresent()){
 			throw new UserNotExistException("Der User mit dem Usernamen "+userName+" konnte nicht gefunden werden.");
@@ -115,9 +118,10 @@ public class ServerService {
 		for(User userInRoom: room.getUsers())
 		{
 			resultSet.add(userInRoom);
-			rt.put(userInRoom.getIpAdress()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+room.getRoomName(),user);
+			rt.put("http://"+userInRoom.getIpAdress()+":"+userInRoom.getTcpPort()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+room.getRoomName(),user);
 		}
 		room.addUser(user);
+		return null;
 	}
 
 	// TODO

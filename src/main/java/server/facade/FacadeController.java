@@ -51,6 +51,10 @@ public class FacadeController {
 			return new ResponseEntity<>(e.getMessage(),
 					HttpStatus.NOT_FOUND);
 		}
+		catch (NameNotValidException e) {
+			return new ResponseEntity<>(e.getMessage(),
+					HttpStatus.PRECONDITION_FAILED);
+		}
 		return new ResponseEntity<>(user, HttpStatus.ACCEPTED);
 	}
 
@@ -66,8 +70,11 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 	} catch (UserNotExistException e) {
 		return new ResponseEntity<>(e.getMessage(),
 				HttpStatus.NOT_FOUND);
+	} catch (NameNotValidException e) {
+			return new ResponseEntity<>(e.getMessage(),
+					HttpStatus.PRECONDITION_FAILED);
+		}
 	}
-}
 
 
 	@RequestMapping(value = BASEPATH + USER_RESOURCES, method = RequestMethod.POST)
@@ -146,7 +153,7 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 		return new ResponseEntity<>("Der User " + userName + " hat den Raum verlassen", HttpStatus.ACCEPTED);
 	}
 
-	@RequestMapping(value = BASEPATH + ROOM_USER_RESOURCE, method = RequestMethod.PUT)
+	@RequestMapping(value = BASEPATH + ROOM_USER_RESOURCE, method = RequestMethod.GET)
 	public ResponseEntity<?> userMayBeNotThere(@PathVariable String userName) {
 		if(!GlobalConstantsAndValidation.isValidName(userName)) {
 			return new ResponseEntity<>("Der Username "+ userName+ "ist nicht gültig.",
@@ -164,6 +171,25 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 		}
 		return new ResponseEntity<>("Der User mit Username:" + userName + "sollte erreichbar sein",
 				HttpStatus.ACCEPTED);
+	}
+
+	@RequestMapping(value = BASEPATH + ROOM_USER_RESOURCE, method = RequestMethod.POST)
+	public ResponseEntity<?> setTCPPort(@PathVariable String userName, @RequestBody Integer tcpPort) {
+		if(!GlobalConstantsAndValidation.isValidName(userName)) {
+			return new ResponseEntity<>("Der Username "+ userName+ "ist nicht gültig.",
+					HttpStatus.PRECONDITION_FAILED);
+
+		}
+		try {
+			User user = serverService.getUser(userName);
+			user.setTcpPort(tcpPort);
+		} catch (UserNotExistException e) {
+			return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+		}  catch (GivenObjectNotValidException|NameNotValidException e) {
+			return new ResponseEntity<>(e.getMessage(), HttpStatus.PRECONDITION_FAILED);
+		}
+		return new ResponseEntity<>("Der User hat nun den TCPPort :" + tcpPort+ " belegt.",
+				HttpStatus.CREATED);
 	}
 
 	@RequestMapping(value = GlobalConstantsAndValidation.TEST_RESOURCES+"/user", method = RequestMethod.GET)
