@@ -133,12 +133,6 @@ RestTemplate rt = new RestTemplate();
 				users.add(u);
 			}
 			serverService.joinRoom(roomName, user);
-			for(User u: users){
-				HttpEntity<User> request = new HttpEntity<>(user);
-				String url = "http:/"+u.getIpAdress()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+roomName;
-				System.out.println(url);
-				rt.put(url, request);
-			}
 			return new ResponseEntity<>(users, HttpStatus.ACCEPTED);
 		} catch (RoomNotExistException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
@@ -199,7 +193,7 @@ RestTemplate rt = new RestTemplate();
 	}
 
 	@RequestMapping(value = BASEPATH + USER_RESOURCE, method = RequestMethod.POST)
-	public ResponseEntity<?> setTCPPort(@PathVariable String userName, @RequestBody Integer tcpPort) {
+	public ResponseEntity<?> setTCPPort(@PathVariable String userName, @RequestBody String tcpPort) {
 		if(!GlobalConstantsAndValidation.isValidName(userName)) {
 			return new ResponseEntity<>("Der Username "+ userName+ "ist nicht gültig.",
 					HttpStatus.PRECONDITION_FAILED);

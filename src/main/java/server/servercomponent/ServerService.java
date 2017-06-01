@@ -5,11 +5,14 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.concurrent.SynchronousQueue;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
 import server.GlobalConstantsAndValidation;
 
 import javax.print.attribute.standard.MediaSize;
@@ -120,22 +123,31 @@ public class ServerService {
 		if(!GlobalConstantsAndValidation.isValidName(roomName)){
 			throw new NameNotValidException("Der Raumname "+roomName+" ist nicht gültig,");
 		}
+System.out.println("HIER!!1");
 		Optional<Room> opt =  rooms.stream().filter(t -> t.getRoomName().equals(roomName)).findFirst();
 		if (!opt.isPresent()) {
 			throw new RoomNotExistException("Der Raum mit Raumnamen: " + roomName + " existiert nicht.");
 		}
 		Room room = opt.get();
-
 		if(!users.contains(user))
 		{
 			throw new UserNotExistException("Der User "+user.getUserName()+" ist nicht angemeldet und kann sich daher nicht in einen Raum einschreiben.");
 		}
-		Set<User>resultSet = new HashSet<User>();
-//		for(User userInRoom: room.getUsers())
-//		{
-//			resultSet.add(userInRoom);
-//			rt.put("http://"+userInRoom.getIpAdress()+":"+userInRoom.getTcpPort()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+room.getRoomName(),user);
-//		}
+		for(User userInRoom: room.getUsers())
+		{
+			User usIsIt = userInRoom;
+			for(User us: users){
+				if(us.equals(userInRoom)){
+					usIsIt= us;
+				}
+			}
+			String url = "http:/"+userInRoom.getIpAdress()+":"+usIsIt.getTcpPort()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+room.getRoomName();
+			System.out.println("Die Adresse "+url);
+			try{rt.put(url,user);}
+			catch (HttpClientErrorException e) {
+				throw new GivenObjectNotValidException(e.getStatusCode() + ": " + e.getResponseBodyAsString());
+			}
+		}
 		room.addUser(user);
 		return room;
 	}

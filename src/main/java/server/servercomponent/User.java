@@ -12,7 +12,7 @@ public class User {
 	private InetAddress ipAdress;
 
 	@JsonIgnore
-	private int tcpPort = 8080;
+	private String tcpPort = "8080";
 
 	public User(String userName, int port, String ipAdress) throws UnknownHostException, NameNotValidException, GivenObjectNotValidException {
 		if(!GlobalConstantsAndValidation.isValidName(userName)){
@@ -48,14 +48,12 @@ public class User {
 		return port;
 	}
 
-	public int getTcpPort() {
+	public String getTcpPort() {
 		return tcpPort;
 	}
 
-	public void setTcpPort(int tcpPort) throws GivenObjectNotValidException {
-		if(!GlobalConstantsAndValidation.isValidPort(tcpPort)){
-			throw new GivenObjectNotValidException("Der Port "+tcpPort+" muss zwichen "+GlobalConstantsAndValidation.PORT_MIN+" und "+GlobalConstantsAndValidation.PORT_MAX+" liegen.");
-		}this.tcpPort = tcpPort;
+	public void setTcpPort(String tcpPort) throws GivenObjectNotValidException {
+		this.tcpPort = tcpPort;
 	}
 
 	public void setPort(int port) throws GivenObjectNotValidException {
@@ -85,7 +83,7 @@ public class User {
 
 	@JsonIgnore
 	public boolean isCorrect() {
-		return GlobalConstantsAndValidation.isValidName(userName)&&GlobalConstantsAndValidation.isValidPort(port)&&GlobalConstantsAndValidation.isValidPort(tcpPort);
+		return GlobalConstantsAndValidation.isValidName(userName)&&GlobalConstantsAndValidation.isValidPort(port);
 	}
 
 	@Override
