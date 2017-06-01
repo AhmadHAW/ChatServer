@@ -20,8 +20,8 @@ public class ServerService {
 	private Set<User> users = new HashSet<User>();
 	private RestTemplate rt = new RestTemplate();
 
-	public List<String> getAllRooms() {
-		List<String> roomNames = new ArrayList<String>();
+	public Set<String> getAllRooms() {
+		Set<String> roomNames = new HashSet<>();
 		for (Room r : rooms) {
 			roomNames.add(r.getRoomName());
 		}
@@ -36,9 +36,15 @@ public class ServerService {
 		return users;
 	}
 
-	public void createUser(User user) throws GivenObjectNotValidException {
+	public void createUser(User user) throws GivenObjectNotValidException, EntityAlreadyExistsException {
+		if(user == null){
+			throw new GivenObjectNotValidException("Der übergebene User darf nicht null sein.");
+		}
+		if(!user.isValid()){
+			throw new GivenObjectNotValidException("Alle Felder des Users müssen gültig belegt sein.");
+		}
 		if(users.contains(user)){
-			throw new GivenObjectNotValidException("Der User "+user.getUserName()+" existiert bereits.");
+			throw new EntityAlreadyExistsException("Der User "+user.getUserName()+" existiert bereits.");
 		}
 			users.add(user);
 
@@ -59,10 +65,10 @@ public class ServerService {
 			if (usersInRoom.contains(user)){
 				room.removeUser(user);
 
-				for(User userStillInRoom: usersInRoom){
-					rt.delete(userStillInRoom.getIpAdress()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES
-									+room.getRoomName()+GlobalConstantsAndValidation.CLIENT_USER_RESOURCES+userStillInRoom.getUserName());
-				}
+//				for(User userStillInRoom: usersInRoom){
+//					rt.delete(userStillInRoom.getIpAdress()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES
+//									+room.getRoomName()+GlobalConstantsAndValidation.CLIENT_USER_RESOURCES+userStillInRoom.getUserName());
+//				}
 			}
 		}
 	}
@@ -92,16 +98,26 @@ public class ServerService {
 		return opt.get();
 	}
 
-	public void createRoom(Room room) throws GivenObjectNotValidException {
+	public void createRoom(Room room) throws GivenObjectNotValidException, EntityAlreadyExistsException {
+
+		if(room == null){
+			throw new GivenObjectNotValidException("Der übergebene Raum darf nicht null sein.");
+		}
+		if(!room.isValid()){
+			throw new GivenObjectNotValidException("Alle Felder des Raumes müssen gültig belegt sein.");
+		}
 		if(rooms.contains(room))
 		{
-			throw new GivenObjectNotValidException("Der Raum"+room.getRoomName()+" existiert bereits.");
+			throw new EntityAlreadyExistsException("Der Raum"+room.getRoomName()+" existiert bereits.");
 		}
+		rooms.add(room);
 	}
 
-	// TODO Clients
-	public Set<User> joinRoom(String roomName, User user) throws RoomNotExistException, UserNotExistException, NameNotValidException, GivenObjectNotValidException {
-		if(GlobalConstantsAndValidation.isValidName(roomName)){
+	public Room joinRoom(String roomName, User user) throws RoomNotExistException, UserNotExistException, NameNotValidException, GivenObjectNotValidException {
+		if(user == null||!user.isValid()){
+			throw new GivenObjectNotValidException("Der User ist null oder Felder des Users sind null");
+		}
+		if(!GlobalConstantsAndValidation.isValidName(roomName)){
 			throw new NameNotValidException("Der Raumname "+roomName+" ist nicht gültig,");
 		}
 		Optional<Room> opt =  rooms.stream().filter(t -> t.getRoomName().equals(roomName)).findFirst();
@@ -112,20 +128,19 @@ public class ServerService {
 
 		if(!users.contains(user))
 		{
-			throw new GivenObjectNotValidException("Der User "+user.getUserName()+" ist nicht angemeldet und kann sich daher nicht in einen Raum einschreiben.");
+			throw new UserNotExistException("Der User "+user.getUserName()+" ist nicht angemeldet und kann sich daher nicht in einen Raum einschreiben.");
 		}
 		Set<User>resultSet = new HashSet<User>();
-		for(User userInRoom: room.getUsers())
-		{
-			resultSet.add(userInRoom);
-			rt.put("http://"+userInRoom.getIpAdress()+":"+userInRoom.getTcpPort()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+room.getRoomName(),user);
-		}
+//		for(User userInRoom: room.getUsers())
+//		{
+//			resultSet.add(userInRoom);
+//			rt.put("http://"+userInRoom.getIpAdress()+":"+userInRoom.getTcpPort()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+room.getRoomName(),user);
+//		}
 		room.addUser(user);
-		return null;
+		return room;
 	}
 
-	// TODO
-	public void leaveRoom(String roomName, String userName) throws RoomNotExistException, UserNotExistException, NameNotValidException, GivenObjectNotValidException {
+	public void leaveRoom(String roomName, String userName) throws RoomNotExistException, UserNotExistException, NameNotValidException, GivenObjectNotValidException, UserNotInRoomException {
 		if(!GlobalConstantsAndValidation.isValidName(roomName)){
 			throw new NameNotValidException("Der Raumname "+roomName+" ist ungültig.");
 		}
@@ -145,12 +160,11 @@ public class ServerService {
 		Room room = opt2.get();
 		User user = opt1.get();
 		if(!room.getUsers().contains(user)){
-			throw new GivenObjectNotValidException("Der User "+ userName+" befand sich nicht in dem Raum");
+			throw new UserNotInRoomException("Der User "+ userName+" befand sich nicht in dem Raum");
 		}
 		room.removeUser(user);
 	}
 
-	// TODO
 	public void isUserReacheable(String userName) throws UserNotExistException, UserNotRespondingException, NameNotValidException {
 		if(!GlobalConstantsAndValidation.isValidName(userName)){
 			throw new NameNotValidException("Der Username "+userName+" ist ungültig.");

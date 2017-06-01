@@ -29,6 +29,10 @@ public class Room {
 
 	}
 
+	public Room(){
+
+	}
+
 	public Room(String roomName) throws NameNotValidException {
 		super();
 		if(!GlobalConstantsAndValidation.isValidName(roomName)){
@@ -129,4 +133,7 @@ public class Room {
 		throw new UserNotExistException("Der User: " + userName + " wurde nicht gefunden.");
 	}
 
+    public boolean isValid() {
+		return roomName!=null||users!=null&&GlobalConstantsAndValidation.isValidName(roomName);
+    }
 }

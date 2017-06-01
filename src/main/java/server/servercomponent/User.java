@@ -12,7 +12,7 @@ public class User {
 	private InetAddress ipAdress;
 
 	@JsonIgnore
-	private int tcpPort;
+	private int tcpPort = 8080;
 
 	public User(String userName, int port, String ipAdress) throws UnknownHostException, NameNotValidException, GivenObjectNotValidException {
 		if(!GlobalConstantsAndValidation.isValidName(userName)){
@@ -27,6 +27,10 @@ public class User {
 		this.userName = userName;
 		this.port = port;
 		this.ipAdress = InetAddress.getByName(ipAdress);
+	}
+
+	public User(){
+
 	}
 
 	public String getUserName() {
@@ -101,4 +105,7 @@ public class User {
 		return true;
 	}
 
+    public boolean isValid() {
+		return userName != null && GlobalConstantsAndValidation.isValidName(userName)&&GlobalConstantsAndValidation.isValidPort(port)&&ipAdress!=null;
+    }
 }

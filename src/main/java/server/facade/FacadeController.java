@@ -30,7 +30,7 @@ public class FacadeController {
 
 	@RequestMapping(value = BASEPATH + ROOM_RESOURCES, method = RequestMethod.GET)
 	public ResponseEntity<?> getRooms() {
-		List<String> rooms = serverService.getAllRooms();
+		Set<String> rooms = serverService.getAllRooms();
 		return new ResponseEntity<>(rooms, HttpStatus.ACCEPTED);
 
 	}
@@ -66,7 +66,7 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 
 }try {
 		User user = serverService.getUser(userName);
-		return new ResponseEntity<>(user, HttpStatus.ACCEPTED);
+		return new ResponseEntity<>(HttpStatus.ACCEPTED);
 	} catch (UserNotExistException e) {
 		return new ResponseEntity<>(e.getMessage(),
 				HttpStatus.NOT_FOUND);
@@ -79,13 +79,18 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 
 	@RequestMapping(value = BASEPATH + USER_RESOURCES, method = RequestMethod.POST)
 	public ResponseEntity<?> createUser(@RequestBody User user) {
+		if(user == null){
+			return new ResponseEntity<>("Der übergebene User darf nicht null sein.", HttpStatus.PRECONDITION_FAILED);
+		}
 		if (!user.isCorrect()) {
-			return new ResponseEntity<>("Der übergebene User ist ungültig.", HttpStatus.PRECONDITION_FAILED);
+			return new ResponseEntity<>("Felder des übergebenen Users sind ungültig belegt.", HttpStatus.PRECONDITION_FAILED);
 		}
 
 		try {
 			serverService.createUser(user);
 		} catch (GivenObjectNotValidException e) {
+			return new ResponseEntity<>(e.getMessage(), HttpStatus.PRECONDITION_FAILED);
+		} catch (EntityAlreadyExistsException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
 		}
 		return new ResponseEntity<>(user,HttpStatus.CREATED);
@@ -93,17 +98,22 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 	}
 
 	@RequestMapping(value = BASEPATH + ROOM_RESOURCES, method = RequestMethod.POST)
+
+
 	public ResponseEntity<?> createRoom(@RequestBody Room room) {
-		if (room == null || !room.getRoomName().matches(NAME_REGEX)) {
+		if (room == null || !room.isValid()) {
 			return new ResponseEntity<>("Der Raum " + room.getRoomName()+" konnte nicht erstellt werden.", HttpStatus.PRECONDITION_FAILED);
 		}
 
 		try {
 			serverService.createRoom(room);
+			return new ResponseEntity<>(room, HttpStatus.CREATED);
 		} catch (GivenObjectNotValidException e) {
+			return new ResponseEntity<>(e.getMessage(), HttpStatus.PRECONDITION_FAILED);
+		} catch (EntityAlreadyExistsException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
 		}
-		return new ResponseEntity<>("Der Raum wurde angelegt", HttpStatus.CREATED);
+
 
 	}
 
@@ -114,7 +124,8 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 			return new ResponseEntity<>("Der Raumname "+ roomName +" ist nicht erlaubt.", HttpStatus.PRECONDITION_FAILED);
 		}
 		try {
-			serverService.joinRoom(roomName, user);
+			Room room = serverService.joinRoom(roomName, user);
+			return new ResponseEntity<>(room.getUsers(), HttpStatus.ACCEPTED);
 		} catch (RoomNotExistException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
 		} catch (UserNotExistException e) {
@@ -124,7 +135,7 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 		} catch (NameNotValidException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.PRECONDITION_FAILED);
 		}
-		return new ResponseEntity<>("Der Raum wurde betreten", HttpStatus.ACCEPTED);
+
 
 	}
 
@@ -145,7 +156,7 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 			serverService.leaveRoom(roomName, userName);
 		} catch (RoomNotExistException | UserNotExistException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-		} catch (GivenObjectNotValidException e) {
+		} catch (UserNotInRoomException|GivenObjectNotValidException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
 		} catch (NameNotValidException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.PRECONDITION_FAILED);
@@ -173,7 +184,7 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 				HttpStatus.ACCEPTED);
 	}
 
-	@RequestMapping(value = BASEPATH + ROOM_USER_RESOURCE, method = RequestMethod.POST)
+	@RequestMapping(value = BASEPATH + USER_RESOURCE, method = RequestMethod.POST)
 	public ResponseEntity<?> setTCPPort(@PathVariable String userName, @RequestBody Integer tcpPort) {
 		if(!GlobalConstantsAndValidation.isValidName(userName)) {
 			return new ResponseEntity<>("Der Username "+ userName+ "ist nicht gültig.",
@@ -231,5 +242,7 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 		}
 		return null;
 	}
+
+
 
 }
