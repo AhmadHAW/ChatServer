@@ -1,14 +1,18 @@
 package server.facade;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.UnknownHostException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.web.client.RestTemplate;
 import server.GlobalConstantsAndValidation;
 import server.servercomponent.*;
 
@@ -81,8 +85,7 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 	public ResponseEntity<?> createUser(@RequestBody User user) {
 		if(user == null){
 			return new ResponseEntity<>("Der übergebene User darf nicht null sein.", HttpStatus.PRECONDITION_FAILED);
-		}
-		if (!user.isCorrect()) {
+		}if (!user.isValid()) {
 			return new ResponseEntity<>("Felder des übergebenen Users sind ungültig belegt.", HttpStatus.PRECONDITION_FAILED);
 		}
 
@@ -116,16 +119,27 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 
 
 	}
-
-	@RequestMapping(value = BASEPATH + ROOM_RESOURCE, method = RequestMethod.PUT)
+RestTemplate rt = new RestTemplate();
+	@RequestMapping(value = BASEPATH + ROOM_RESOURCE, method = RequestMethod.POST)
 	public ResponseEntity<?> joinRoom(@PathVariable String roomName, @RequestBody User user) {
 
 		if (!GlobalConstantsAndValidation.isValidName(roomName)) {
 			return new ResponseEntity<>("Der Raumname "+ roomName +" ist nicht erlaubt.", HttpStatus.PRECONDITION_FAILED);
 		}
 		try {
-			Room room = serverService.joinRoom(roomName, user);
-			return new ResponseEntity<>(room.getUsers(), HttpStatus.ACCEPTED);
+			Room room = serverService.getRoom(roomName);
+			Set<User> users = new HashSet<User>();
+			for(User u: room.getUsers()){
+				users.add(u);
+			}
+			serverService.joinRoom(roomName, user);
+			for(User u: users){
+				HttpEntity<User> request = new HttpEntity<>(user);
+				String url = "http:/"+u.getIpAdress()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+roomName;
+				System.out.println(url);
+				rt.put(url, request);
+			}
+			return new ResponseEntity<>(users, HttpStatus.ACCEPTED);
 		} catch (RoomNotExistException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
 		} catch (UserNotExistException e) {
@@ -140,7 +154,7 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 	}
 
 	@RequestMapping(value = BASEPATH + ROOM_USER_RESOURCE, method = RequestMethod.DELETE)
-	public ResponseEntity<?> joinRoom(@PathVariable String roomName, @PathVariable String userName) {
+	public ResponseEntity<?> leaveRoom(@PathVariable String roomName, @PathVariable String userName) {
 
 		if(!GlobalConstantsAndValidation.isValidName(userName)) {
 			return new ResponseEntity<>("Der Username "+ userName+ "ist nicht gültig.",
