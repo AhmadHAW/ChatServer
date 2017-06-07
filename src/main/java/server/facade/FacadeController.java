@@ -70,11 +70,12 @@ if(!GlobalConstantsAndValidation.isValidName(userName)) {
 
 }try {
 		User user = serverService.getUser(userName);
+		serverService.removeUser(userName);
 		return new ResponseEntity<>(HttpStatus.ACCEPTED);
 	} catch (UserNotExistException e) {
 		return new ResponseEntity<>(e.getMessage(),
 				HttpStatus.NOT_FOUND);
-	} catch (NameNotValidException e) {
+	} catch (GivenObjectNotValidException|NameNotValidException e) {
 			return new ResponseEntity<>(e.getMessage(),
 					HttpStatus.PRECONDITION_FAILED);
 		}

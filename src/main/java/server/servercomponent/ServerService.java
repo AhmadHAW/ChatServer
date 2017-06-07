@@ -62,18 +62,20 @@ public class ServerService {
 		throw new UserNotExistException("Der User mit dem Usernamen "+userName+" konnte nicht gefunden werden.");
 		}
 		User user = opt.get();
-		users.remove(user);
+
 		for(Room room: rooms){
 			Set<User> usersInRoom = room.getUsers();
 			if (usersInRoom.contains(user)){
-				room.removeUser(user);
-
-//				for(User userStillInRoom: usersInRoom){
-//					rt.delete(userStillInRoom.getIpAdress()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES
-//									+room.getRoomName()+GlobalConstantsAndValidation.CLIENT_USER_RESOURCES+userStillInRoom.getUserName());
-//				}
+				try {
+					leaveRoom(room.getRoomName(), user.getUserName());
+				} catch (RoomNotExistException e) {
+					e.printStackTrace();
+				} catch (UserNotInRoomException e) {
+					e.printStackTrace();
+				}
 			}
 		}
+		users.remove(user);
 	}
 
 	public User getUser(String userName) throws UserNotExistException, NameNotValidException {
@@ -123,26 +125,25 @@ public class ServerService {
 		if(!GlobalConstantsAndValidation.isValidName(roomName)){
 			throw new NameNotValidException("Der Raumname "+roomName+" ist nicht gültig,");
 		}
-System.out.println("HIER!!1");
 		Optional<Room> opt =  rooms.stream().filter(t -> t.getRoomName().equals(roomName)).findFirst();
 		if (!opt.isPresent()) {
 			throw new RoomNotExistException("Der Raum mit Raumnamen: " + roomName + " existiert nicht.");
 		}
+		String userName = user.getUserName();
+		Optional<User> optUser =  users.stream().filter(t -> t.getUserName().equals(userName)).findFirst();
+		if (!optUser.isPresent()) {
+			throw new UserNotExistException("Der User mit Usernamen: " + user.getUserName() + " existiert nicht.");
+		}
 		Room room = opt.get();
+		user = optUser.get();
 		if(!users.contains(user))
 		{
-			throw new UserNotExistException("Der User "+user.getUserName()+" ist nicht angemeldet und kann sich daher nicht in einen Raum einschreiben.");
+			throw new UserNotExistException("Der User "+userName+" ist nicht angemeldet und kann sich daher nicht in einen Raum einschreiben.");
 		}
 		for(User userInRoom: room.getUsers())
 		{
-			User usIsIt = userInRoom;
-			for(User us: users){
-				if(us.equals(userInRoom)){
-					usIsIt= us;
-				}
-			}
-			String url = "http:/"+userInRoom.getIpAdress()+":"+usIsIt.getTcpPort()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+room.getRoomName();
-			System.out.println("Die Adresse "+url);
+
+			String url = "http:/"+userInRoom.getIpAdress()+":"+userInRoom.getTcpPort()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+room.getRoomName();
 			try{rt.put(url,user);}
 			catch (HttpClientErrorException e) {
 				throw new GivenObjectNotValidException(e.getStatusCode() + ": " + e.getResponseBodyAsString());
@@ -174,7 +175,17 @@ System.out.println("HIER!!1");
 		if(!room.getUsers().contains(user)){
 			throw new UserNotInRoomException("Der User "+ userName+" befand sich nicht in dem Raum");
 		}
-		room.removeUser(user);
+
+		try{
+			room.removeUser(user);
+			for(User userInRoom: room.getUsers()){
+				String url = "http:/"+userInRoom.getIpAdress()+":"+userInRoom.getTcpPort()+GlobalConstantsAndValidation.CLIENT_ROOM_RESOURCES+"/"+roomName+GlobalConstantsAndValidation.CLIENT_USER_RESOURCES+"/"+userName;
+				rt.delete(url);
+			}
+		}catch (HttpClientErrorException e) {
+			room.addUser(user);
+			throw new GivenObjectNotValidException(e.getStatusCode() + ": " + e.getResponseBodyAsString());
+		}
 	}
 
 	public void isUserReacheable(String userName) throws UserNotExistException, UserNotRespondingException, NameNotValidException {

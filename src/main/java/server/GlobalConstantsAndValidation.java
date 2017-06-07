@@ -6,7 +6,7 @@ package server;
 public class GlobalConstantsAndValidation {
 
     public final static String CLIENT_ROOM_RESOURCES = "/chatbot/client/rooms";
-    public final static String CLIENT_USER_RESOURCES = "/chatbot/client/users";
+    public final static String CLIENT_USER_RESOURCES = "/users";
     public final static String TEST_RESOURCES = "/test";
     public final static String NAME_REGEX = "\\w+";
     public final static String IP_ADRESS_REGEX = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
